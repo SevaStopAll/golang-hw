@@ -11,16 +11,15 @@ import (
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(str string) (string, error) {
-
 	builder := strings.Builder{}
 	matched3, _ := regexp.MatchString(`\\\d{2}`, str)
 	matched, _ := regexp.MatchString("\\d{2}", str)
 	matched2, _ := regexp.MatchString("\\A\\d", str)
-	if (matched && !matched3) || matched2 {
-		return "", ErrInvalidString
+	done, err := checkRegexp(matched, matched3, matched2)
+	if done {
+		return "", err
 	}
-	var runes []rune
-	runes = []rune(str)
+	runes := []rune(str)
 	if len(runes) == 0 {
 		return "", nil
 	}
@@ -30,28 +29,35 @@ func Unpack(str string) (string, error) {
 		}
 		if i+1 < len(runes) {
 			nextChar := runes[i+1]
-			if unicode.IsDigit(nextChar) && !unicode.IsDigit(runes[i]) {
-				var a = string(nextChar)
-				var b = string(runes[i])
-				if strings.EqualFold(b, "\\") {
-					continue
-				}
-				length, _ := strconv.Atoi(a)
-				for i := 0; i < length; i++ {
-					builder.WriteString(b)
-				}
-			} else {
-				var a = string(runes[i])
-				builder.WriteString(a)
-			}
-		} else {
-			if unicode.IsDigit(runes[i]) {
+			a := string(nextChar)
+			b := string(runes[i])
+			if strings.EqualFold(b, "\\") {
 				continue
+			}
+			if unicode.IsDigit(nextChar) && !unicode.IsDigit(runes[i]) {
+				length, _ := strconv.Atoi(a)
+				writeString(length, builder, b)
 			} else {
-				var a = string(runes[i])
+				a := string(runes[i])
 				builder.WriteString(a)
 			}
+		} else if !unicode.IsDigit(runes[i]) {
+			a := string(runes[i])
+			builder.WriteString(a)
 		}
 	}
 	return builder.String(), nil
+}
+
+func writeString(length int, builder strings.Builder, b string) {
+	for i := 0; i < length; i++ {
+		builder.WriteString(b)
+	}
+}
+
+func checkRegexp(matched bool, matched3 bool, matched2 bool) (bool, error) {
+	if (matched && !matched3) || matched2 {
+		return true, ErrInvalidString
+	}
+	return false, nil
 }
