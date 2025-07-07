@@ -23,23 +23,28 @@ func NewCache(capacity int) Cache {
 }
 
 func (lruCache *lruCache) Set(key Key, value interface{}) bool {
-	if got, ok := lruCache.items[key]; ok {
+	got, ok := lruCache.items[key]
+	switch ok {
+	case true:
 		lruCache.queue.MoveToFront(got)
 		lruCache.items[key].Value = value
-		return true
-	} else if lruCache.queue.Len() < lruCache.capacity {
-		pushed := lruCache.queue.PushFront(value)
-		lruCache.items[key] = pushed
-	} else {
-		oldestCachedValue := lruCache.queue.Back().Value
-		for key, val := range lruCache.items {
-			if val.Value == oldestCachedValue {
-				delete(lruCache.items, key)
+		return ok
+	case false:
+		if lruCache.queue.Len() < lruCache.capacity {
+			pushed := lruCache.queue.PushFront(value)
+			lruCache.items[key] = pushed
+		} else {
+			oldestCachedValue := lruCache.queue.Back().Value
+			for key, val := range lruCache.items {
+				if val.Value == oldestCachedValue {
+					delete(lruCache.items, key)
+				}
 			}
+			lruCache.queue.Remove(lruCache.queue.Back())
+			pushed := lruCache.queue.PushFront(value)
+			lruCache.items[key] = pushed
 		}
-		lruCache.queue.Remove(lruCache.queue.Back())
-		pushed := lruCache.queue.PushFront(value)
-		lruCache.items[key] = pushed
+		return ok
 	}
 	return false
 }
