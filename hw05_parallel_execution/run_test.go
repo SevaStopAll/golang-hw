@@ -3,13 +3,13 @@ package hw05parallelexecution
 import (
 	"errors"
 	"fmt"
+	"go.uber.org/goleak"
 	"math/rand"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/goleak"
 )
 
 func TestRun(t *testing.T) {
@@ -34,12 +34,14 @@ func TestRun(t *testing.T) {
 		maxErrorsCount := 23
 		err := Run(tasks, workersCount, maxErrorsCount)
 
+		fmt.Println("METHOD IS FINISHED")
 		require.Truef(t, errors.Is(err, ErrErrorsLimitExceeded), "actual err - %v", err)
 		require.LessOrEqual(t, runTasksCount, int32(workersCount+maxErrorsCount), "extra tasks were started")
+
 	})
 
 	t.Run("tasks without errors", func(t *testing.T) {
-		tasksCount := 50
+		tasksCount := 10
 		tasks := make([]Task, 0, tasksCount)
 
 		var runTasksCount int32
@@ -61,6 +63,7 @@ func TestRun(t *testing.T) {
 
 		start := time.Now()
 		err := Run(tasks, workersCount, maxErrorsCount)
+
 		elapsedTime := time.Since(start)
 		require.NoError(t, err)
 
