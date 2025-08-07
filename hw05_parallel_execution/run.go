@@ -15,7 +15,7 @@ func Run(tasks []Task, workersNumber, errorsNumber int) error {
 		return ErrErrorsLimitExceeded
 	}
 
-	var atomicErrorNumbers = int32(errorsNumber)
+	atomicErrorNumbers := int32(errorsNumber)
 	var wg sync.WaitGroup
 
 	taskChan := make(chan Task, len(tasks))
