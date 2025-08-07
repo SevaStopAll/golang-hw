@@ -2,89 +2,59 @@ package hw05parallelexecution
 
 import (
 	"errors"
-	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-func consume(taskChan <-chan Task, taskError chan error) {
-	for {
-		select {
-		case task, ok := <-taskChan:
-			if !ok {
-				fmt.Println("Chan is closed")
-				return
-			}
-			err := task()
-			if err != nil {
-				taskError <- err
-			}
-		case _, ok := <-taskError:
-			if !ok {
-				return
-			}
-		}
-	}
-}
-
 func Run(tasks []Task, workersNumber, errorsNumber int) error {
+	if errorsNumber <= 0 {
+		return ErrErrorsLimitExceeded
+	}
 
+	var atomicErrorNumbers = int32(errorsNumber)
 	var wg sync.WaitGroup
 
-	errorChannel := make(chan error, workersNumber)
-	doneChannel := make(chan struct{}, errorsNumber)
+	taskChan := make(chan Task, len(tasks))
+	doneChannel := make(chan bool, errorsNumber)
+	var currentErrors int32
 
-	producerOwner := func() <-chan Task {
-		tasksChan := make(chan Task, workersNumber)
-
-		go func() {
-			defer close(tasksChan)
-			for _, task := range tasks {
-				select {
-				case <-doneChannel:
-					return
-				default:
-					fmt.Println("Producer task", task)
-					tasksChan <- task
-				}
-			}
+	go func() {
+		defer func() {
+			close(taskChan)
 		}()
-		return tasksChan
-	}
-
-	producerChan := producerOwner()
+		for _, task := range tasks {
+			taskChan <- task
+		}
+	}()
 
 	for i := 0; i < workersNumber; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			fmt.Println("CONSUMER CLOSED")
-			consume(producerChan, errorChannel)
+			for task := range taskChan {
+				if atomic.LoadInt32(&currentErrors) >= atomicErrorNumbers {
+					return
+				}
+				err := task()
+				if err != nil {
+					atomic.AddInt32(&currentErrors, 1)
+				}
+			}
 		}()
 	}
 
 	go func() {
 		wg.Wait()
-		fmt.Println("wg waited")
 		close(doneChannel)
 	}()
+	<-doneChannel
 
-	counter := 0
-	for {
-		select {
-		case err, _ := <-errorChannel:
-			if err != nil {
-				counter++
-				if counter >= errorsNumber {
-					return ErrErrorsLimitExceeded
-				}
-			}
-		case <-doneChannel:
-			fmt.Println("Work is done")
-			return nil
-		}
+	if atomic.LoadInt32(&currentErrors) >= atomicErrorNumbers {
+		return ErrErrorsLimitExceeded
 	}
+	return nil
 }
