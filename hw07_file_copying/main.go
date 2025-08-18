@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 )
 
 var (
@@ -18,5 +19,8 @@ func init() {
 
 func main() {
 	flag.Parse()
-	// Place your code here.
+	err := Copy("D:\\GolandProjects\\golang-hw\\hw07_file_copying\\testdata\\out_offset0_limit10.txt", "D:\\GolandProjects\\golang-hw\\hw07_file_copying\\testdata\\test.txt", 0, 1024)
+	if err != nil {
+		fmt.Println("error")
+	}
 }
