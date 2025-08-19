@@ -37,15 +37,13 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	fileTo, _ := os.Create(toPath)
 	currentSize := 0
-	for offset < copiedSize {
-		n, readingError := fileFrom.Read(buf)
-		offset += int64(n)
-		if errors.Is(readingError, io.EOF) {
-			break
-		} else if readingError != nil && !errors.Is(readingError, io.EOF) {
+	var position int64
+	for position < copiedSize {
+		n, readingError := fileFrom.ReadAt(buf, offset+position)
+		position += int64(n)
+		if readingError != nil && !errors.Is(readingError, io.EOF) {
 			return readingError
 		}
-
 		write, writingError := fileTo.Write(buf[:n])
 		alreadyCopied := float64(currentSize + write)
 		fmt.Printf("Current percentage %.2f%%'\n'", alreadyCopied/(float64(copiedSize))*100)
