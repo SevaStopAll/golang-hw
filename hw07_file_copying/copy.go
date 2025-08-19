@@ -48,7 +48,8 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		}
 
 		write, writingError := fileTo.Write(buf[:n])
-		fmt.Printf("Current percentage %d%%", int64(currentSize+write)/copiedSize*100)
+		alreadyCopied := float64(currentSize + write)
+		fmt.Printf("Current percentage %.2f%%'\n'", alreadyCopied/(float64(copiedSize))*100)
 		currentSize += write
 		if writingError != nil {
 			return writingError

@@ -21,7 +21,7 @@ func TestCopy(t *testing.T) {
 		err := Copy(pathFrom,
 			pathTo, 0, 0)
 
-		equalFile, err2 := os.Stat(filepath.Join("hw07_file_copying", "testdata", "out_offset0_limit0.txt"))
+		equalFile, err2 := os.Stat(filepath.Join("testdata", "out_offset0_limit0.txt"))
 		if err2 != nil {
 			t.Fatal(err2)
 		}
