@@ -32,6 +32,7 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 0 limit 10", func(t *testing.T) {
@@ -55,6 +56,7 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 0 limit 1000", func(t *testing.T) {
@@ -80,6 +82,7 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 100 limit 1000", func(t *testing.T) {
@@ -105,6 +108,7 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 6000 limit 1000", func(t *testing.T) {
@@ -130,5 +134,6 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
+		defer os.Remove(pathTo)
 	})
 }
