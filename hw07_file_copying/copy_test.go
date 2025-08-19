@@ -13,7 +13,7 @@ func TestCopy(t *testing.T) {
 	t.Run("limit 0 offset 0", func(t *testing.T) {
 		fmt.Println(os.Getwd())
 		pathFrom := filepath.Join("testdata", "input.txt")
-		pathTo := filepath.Join("testdata", "out.txt")
+		pathTo := filepath.Join("testdata", "outtest.txt")
 		_, errorCreating := os.CreateTemp("", pathTo)
 		if errorCreating != nil {
 			return
@@ -37,7 +37,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("offset 0 limit 10", func(t *testing.T) {
 		pathFrom := filepath.Join("testdata", "input.txt")
-		pathTo := filepath.Join("testdata", "out.txt")
+		pathTo := filepath.Join("testdata", "outtest.txt")
 		_, errorCreating := os.CreateTemp("", pathTo)
 		if errorCreating != nil {
 			return
@@ -61,7 +61,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("offset 0 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testdata", "input.txt")
-		pathTo := filepath.Join("testdata", "out.txt")
+		pathTo := filepath.Join("testdata", "outtest.txt")
 
 		_, errorCreating := os.CreateTemp("", pathTo)
 		if errorCreating != nil {
@@ -87,7 +87,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("offset 100 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testdata", "input.txt")
-		pathTo := filepath.Join("testdata", "out.txt")
+		pathTo := filepath.Join("testdata", "outtest.txt")
 
 		_, errorCreating := os.CreateTemp("", pathTo)
 		if errorCreating != nil {
@@ -113,7 +113,7 @@ func TestCopy(t *testing.T) {
 
 	t.Run("offset 6000 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testdata", "input.txt")
-		pathTo := filepath.Join("testdata", "out.txt")
+		pathTo := filepath.Join("testdata", "outtest.txt")
 
 		_, errorCreating := os.CreateTemp("", pathTo)
 		if errorCreating != nil {
