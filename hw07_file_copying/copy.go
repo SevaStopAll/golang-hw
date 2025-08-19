@@ -23,6 +23,8 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	fileFrom, openingError := os.Open(fromPath)
 	if openingError != nil {
 		fmt.Println("Opening error")
+		dir, _ := os.Getwd()
+		fmt.Println(os.ReadDir(dir))
 		return openingError
 	}
 	stat, err := os.Stat(fromPath)
