@@ -19,7 +19,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	} else {
 		buf = make([]byte, 1024)
 	}
-
+	fmt.Println(fromPath)
 	fileFrom, openingError := os.OpenFile(fromPath, os.O_RDONLY, os.ModePerm)
 	if openingError != nil {
 		return openingError
