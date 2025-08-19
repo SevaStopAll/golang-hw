@@ -37,8 +37,8 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		copiedSize = limit
 	}
 	fileTo, _ := os.Create(toPath)
-
-	for offset < int64(len(buf)) {
+	currentSize := 0
+	for offset < copiedSize {
 		n, readingError := fileFrom.Read(buf)
 		offset += int64(n)
 		if errors.Is(readingError, io.EOF) {
@@ -46,7 +46,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 		} else if readingError != nil && !errors.Is(readingError, io.EOF) {
 			return readingError
 		}
-		currentSize := 0
+
 		write, writingError := fileTo.Write(buf[:n])
 		fmt.Printf("Current percentage %d%%", int64(currentSize+write)/copiedSize*100)
 		currentSize += write
