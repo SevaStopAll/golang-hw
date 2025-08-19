@@ -12,7 +12,10 @@ func TestCopy(t *testing.T) {
 	t.Run("limit 0 offset 0", func(t *testing.T) {
 		pathFrom := filepath.Join("testData", "input.txt")
 		pathTo := filepath.Join("testdata", "test.txt")
-
+		_, errorCreating := os.Create(pathTo)
+		if errorCreating != nil {
+			return
+		}
 		err := Copy(pathFrom,
 			pathTo, 0, 0)
 
@@ -27,12 +30,16 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
-		// defer os.Remove(pathTo)
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 0 limit 10", func(t *testing.T) {
 		pathFrom := filepath.Join("testData", "input.txt")
 		pathTo := filepath.Join("testdata", "test.txt")
+		_, errorCreating := os.Create(pathTo)
+		if errorCreating != nil {
+			return
+		}
 		err := Copy(pathFrom,
 			pathTo, 0, 10)
 
@@ -47,12 +54,18 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
-		// defer os.Remove(pathTo)
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 0 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testData", "input.txt")
 		pathTo := filepath.Join("testdata", "test.txt")
+
+		_, errorCreating := os.Create(pathTo)
+		if errorCreating != nil {
+			return
+		}
+
 		err := Copy(pathFrom,
 			pathTo, 0, 1000)
 
@@ -67,12 +80,18 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
-		// defer os.Remove(pathTo)
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 100 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testData", "input.txt")
 		pathTo := filepath.Join("testdata", "test.txt")
+
+		_, errorCreating := os.Create(pathTo)
+		if errorCreating != nil {
+			return
+		}
+
 		err := Copy(pathFrom,
 			pathTo, 100, 1000)
 		equalFile, err2 := os.Stat(filepath.Join("testdata", "out_offset100_limit1000.txt"))
@@ -87,12 +106,18 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
-		// defer os.Remove(pathTo)
+		defer os.Remove(pathTo)
 	})
 
 	t.Run("offset 6000 limit 1000", func(t *testing.T) {
 		pathFrom := filepath.Join("testData", "input.txt")
 		pathTo := filepath.Join("testdata", "test.txt")
+
+		_, errorCreating := os.Create(pathTo)
+		if errorCreating != nil {
+			return
+		}
+
 		err := Copy(pathFrom,
 			pathTo, 6000, 1000)
 
@@ -107,6 +132,6 @@ func TestCopy(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, equalFile.Size(), writtenFile.Size())
-		// defer os.Remove(pathTo)
+		defer os.Remove(pathTo)
 	})
 }
