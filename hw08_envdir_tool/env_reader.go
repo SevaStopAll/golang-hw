@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
-	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,73 +19,83 @@ type EnvValue struct {
 	NeedRemove bool
 }
 
-var ErrReadDir = errors.New("error reading directory")
+type skipPredicate func(d fs.DirEntry) (skip bool)
+
+// walkDir walks through a specified directory and sends file paths into the channel of results.
+func walkDir(dir string, skip skipPredicate) (result chan string, status chan error) {
+	result = make(chan string)
+	status = make(chan error)
+
+	go func() {
+		status <- filepath.WalkDir(dir, func(p string, d fs.DirEntry, e error) error {
+			if e != nil {
+				return e
+			}
+
+			if p == dir || skip(d) {
+				return nil
+			}
+
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			result <- p
+			return nil
+		})
+		close(result)
+		close(status)
+	}()
+
+	return result, status
+}
+
+func transformVal(val []byte) string {
+	return strings.TrimRight(
+		string(
+			bytes.ReplaceAll(val, []byte{0x00}, []byte("\n")),
+		),
+		" \t",
+	)
+}
+
+func readValueFromFile(path string) (EnvValue, error) {
+	stat, _ := os.Stat(path)
+	if stat.Size() == 0 {
+		return EnvValue{Value: "", NeedRemove: true}, nil
+	}
+
+	f, e := os.Open(path)
+	if e != nil {
+		return EnvValue{}, e
+	}
+	defer f.Close()
+
+	lineBytes, _, e := bufio.NewReader(f).ReadLine()
+	if e != nil && !errors.Is(e, io.EOF) {
+		return EnvValue{}, e
+	}
+
+	return EnvValue{Value: transformVal(lineBytes)}, nil
+}
 
 // ReadDir reads a specified directory and returns map of env variables.
 // Variables represented as files where filename is name of variable, file first line is a value.
-func ReadDir(dir string) (Environment, error) {
-	var fileName string
-	if !strings.HasSuffix(dir, "/") {
-		dir += "/"
-	}
-	dirEntries, err := os.ReadDir(dir)
-	envDirMap := make(Environment)
-	if err != nil {
-		return nil, ErrReadDir
-	}
-	for _, entry := range dirEntries {
-		if !entry.IsDir() {
-			fileName = entry.Name()
-			envName := strings.ReplaceAll(fileName, "=", "")
-			fileInfo, err := os.Stat(dir + fileName)
-			if err != nil {
-				fmt.Printf("failed to read info of %v file: %v\n", fileName, err)
-				continue
-			}
-			if fileInfo.Size() == 0 {
-				envDirMap[envName] = EnvValue{Value: "", NeedRemove: true}
-				continue
-			}
-			file, err := os.Open(dir + fileName)
-			if err != nil {
-				fmt.Printf("failed to open file %v: %v\n", fileName, err)
-				continue
-			}
-			line, err := readLine(file)
-			if err != nil {
-				fmt.Printf("failed to read file %v: %v\n", fileName, err)
-				continue
-			}
-			line = strings.TrimRight(line, "\t")
-			envDirMap[envName] = EnvValue{Value: line, NeedRemove: false}
-			file.Close()
-		}
-	}
-	return envDirMap, nil
-}
+func ReadDir(dir string) (res Environment, err error) {
+	res = make(Environment)
+	files, status := walkDir(dir, func(d fs.DirEntry) (skip bool) {
+		return strings.Contains(d.Name(), "=")
+	})
 
-func readLine(reader io.Reader) (line string, err error) {
-	var n int
-	var lineSlice []byte
-	runeSlice := make([]byte, 1)
 	for {
-		n, err = reader.Read(runeSlice)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-		if n > 0 {
-			char := runeSlice[0]
-			if char == '\n' {
-				break
+		select {
+		case file := <-files:
+			line, e := readValueFromFile(file)
+			if e != nil {
+				continue
 			}
-			if char == 0x00 {
-				char = '\n'
-			}
-			lineSlice = append(lineSlice, char)
+			res[filepath.Base(file)] = line
+		case err = <-status:
+			return res, err
 		}
 	}
-	return string(lineSlice), nil
 }
