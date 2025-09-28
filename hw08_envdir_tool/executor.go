@@ -15,8 +15,8 @@ func RunCmd(cmd []string, env Environment) (returnCode int) {
 			os.Setenv(envName, envValue.Value)
 		}
 	}
-	cmdName := cmd[0]  //nolint:gosec
-	cmdArgs := cmd[1:] //nolint:gosec
+	cmdName := cmd[0]
+	cmdArgs := cmd[1:]
 	cmdExec := exec.Command(cmdName, cmdArgs...)
 	cmdExec.Env = os.Environ()
 	for envName, envValue := range env {
