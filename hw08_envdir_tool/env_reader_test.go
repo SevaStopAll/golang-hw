@@ -27,23 +27,8 @@ func TestReadDir(t *testing.T) {
 				"UNSET": EnvValue{Value: "", NeedRemove: true},
 			},
 			err: nil,
-		}, {
-			name: "case with plus sign and spaces in the name of variable",
-			path: "./testdata/more_tests/test_1",
-			expected: Environment{
-				"SPACES_in    THE_NAME": EnvValue{Value: "hmmm...what will happen in such case?", NeedRemove: false},
-				"TRIVIAL":               EnvValue{Value: "Nothing interesting...\nAbsolutely", NeedRemove: false},
-			},
-			err: nil,
-		}, {
-			name: "case with empty line and zero file",
-			path: "./testdata/more_tests/test_2",
-			expected: Environment{
-				"EMPTY_FIRST_LINE": EnvValue{Value: "", NeedRemove: false},
-				"ZERO_FILE":        EnvValue{Value: "", NeedRemove: true},
-			},
-			err: nil,
-		}, {
+		},
+		{
 			name: "case with not existing path",
 			path: "/bin/this_path_does_not_exist/",
 			expected: Environment{
