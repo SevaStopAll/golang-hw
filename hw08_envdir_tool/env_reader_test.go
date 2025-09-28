@@ -1,41 +1,69 @@
 package main
 
 import (
-	"os"
+	"io/fs"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	testReadDir      = "testdata1"
-	testReadFileName = "ENV=1"
-	testFile         *os.File
-	testReadExpEnv   = "ENV1"
-)
-
-func TestReadDir(t *testing.T) {
-	t.Run("Test env reader with '=' char", func(t *testing.T) {
-		err := os.Mkdir(testReadDir, 0o777)
-		if err != nil {
-			panic(err)
-		}
-		testFile, err = os.Create(testReadDir + "/" + testReadFileName)
-		if err != nil {
-			os.Remove(testReadDir)
-			panic(err)
-		}
-		defer testReadDirClean()
-		testFile.Close()
-		envMap, err := ReadDir(testReadDir)
-		require.NoError(t, err)
-		envValue, ok := envMap[testReadExpEnv]
-		require.True(t, ok)
-		require.Equal(t, "", envValue.Value)
-		require.Equal(t, true, envValue.NeedRemove)
-	})
+type readerTestCase struct {
+	name     string
+	path     string
+	expected Environment
+	err      error
 }
 
-func testReadDirClean() {
-	os.RemoveAll(testReadDir)
+func TestReadDir(t *testing.T) {
+	cases := []readerTestCase{
+		{
+			name: "simple case based on env testdata",
+			path: "./testdata/env",
+			expected: Environment{
+				"BAR":   EnvValue{Value: "bar", NeedRemove: false},
+				"EMPTY": EnvValue{Value: "", NeedRemove: false},
+				"FOO":   EnvValue{Value: "   foo\nwith new line", NeedRemove: false},
+				"HELLO": EnvValue{Value: "\"hello\"", NeedRemove: false},
+				"UNSET": EnvValue{Value: "", NeedRemove: true},
+			},
+			err: nil,
+		}, {
+			name: "case with plus sign and spaces in the name of variable",
+			path: "./testdata/more_tests/test_1",
+			expected: Environment{
+				"SPACES_in    THE_NAME": EnvValue{Value: "hmmm...what will happen in such case?", NeedRemove: false},
+				"TRIVIAL":               EnvValue{Value: "Nothing interesting...\nAbsolutely", NeedRemove: false},
+			},
+			err: nil,
+		}, {
+			name: "case with empty line and zero file",
+			path: "./testdata/more_tests/test_2",
+			expected: Environment{
+				"EMPTY_FIRST_LINE": EnvValue{Value: "", NeedRemove: false},
+				"ZERO_FILE":        EnvValue{Value: "", NeedRemove: true},
+			},
+			err: nil,
+		}, {
+			name: "case with not existing path",
+			path: "/bin/this_path_does_not_exist/",
+			expected: Environment{
+				"EMPTY_FIRST_LINE": EnvValue{Value: "", NeedRemove: false},
+				"ZERO_FILE":        EnvValue{Value: "", NeedRemove: true},
+			},
+			err: fs.ErrNotExist,
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			env, e := ReadDir(tc.path)
+			if tc.err != nil {
+				require.ErrorIs(t, e, tc.err, "actual error %q but expected %q", e, tc.err)
+			} else {
+				require.NoError(t, e, "No error expected, but got %q", e)
+				require.Equal(t, tc.expected, env)
+			}
+		})
+	}
 }
