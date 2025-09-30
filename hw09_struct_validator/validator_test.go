@@ -1,7 +1,6 @@
 package hw09structvalidator
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"testing"
@@ -22,7 +21,6 @@ type (
 		Phones       []string `validate:"len:11|regexp:^\\+\\d+$"`
 		ChildrenAges []int    `validate:"max:17"`
 		Sex          string   `validate:"in:male|female"`
-		meta         json.RawMessage
 	}
 
 	App struct {
