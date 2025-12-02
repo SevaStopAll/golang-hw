@@ -1,5 +1,7 @@
-[logger]
-level = "INFO"
-
-# TODO
-# ...
+Level = "INFO"
+LogLocation = "D:\\GolandProjects\\golang-hw\\hw12_13_14_15_calendar\\log\\log.log"
+DbDriverName = "postgres"
+Dsn = 'host=127.0.0.1 port=5432 user=postgres password=postgres dbname=idm_tests sslmode=disable'
+Host = "127.0.0.1"
+Port = 8080
+Storage = "inner"
