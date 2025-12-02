@@ -17,7 +17,7 @@ import (
 var configFile string
 
 func init() {
-	flag.StringVar(&configFile, "config", "D:\\GolandProjects\\golang-hw\\hw12_13_14_15_16_calendar\\configs\\config.toml", "Path to configuration file")
+	flag.StringVar(&configFile, "config", "D:\\GolandProjects\\golang-hw\\hw12_13_14_15_calendar\\configs\\config.toml", "Path to configuration file")
 }
 
 func main() {
