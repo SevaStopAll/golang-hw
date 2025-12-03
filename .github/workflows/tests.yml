@@ -72,10 +72,6 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v5
 
-      - name: Set GOROOT explicitly
-        run: |
-          echo "GOROOT=$(go env GOROOT)" >> $GITHUB_ENV
-
       - name: make lint
         run: make lint
         working-directory: hw12_13_14_15_calendar
