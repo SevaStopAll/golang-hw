@@ -29,6 +29,7 @@ install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.50.1
 
 lint: install-lint-deps
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
 	golangci-lint run ./...
 
 .PHONY: build run build-img run-img version test lint
