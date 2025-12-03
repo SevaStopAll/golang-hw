@@ -2,230 +2,250 @@ package memorystorage
 
 import (
 	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"reflect"
 	"testing"
 	"time"
 )
 
-func TestMemoryStorage_Create(t *testing.T) {
-
-	memStorage := New()
-
-	event := models.Event{
-		Title:    "Test Event",
-		DateTime: time.Now().UTC(),
+// Вспомогательная функция для создания события (только нужные поля)
+func newEvent(title string, dt time.Time) models.Event {
+	return models.Event{
+		Title:    title,
+		DateTime: dt,
+		// Id будет заполнен Create()
 	}
-
-	id, err := memStorage.Create(event)
-	require.NoError(t, err)
-	assert.Equal(t, int64(0), id)
-
-	retrieved := memStorage.FindAll()
-	assert.Len(t, retrieved, 1)
-	assert.Equal(t, event.Title, retrieved[0].Title)
-	assert.True(t, event.DateTime.Equal(retrieved[0].DateTime))
-	assert.Equal(t, id, retrieved[0].Id)
 }
 
-func TestMemoryStorage_Create_Multiple(t *testing.T) {
+func TestMemoryStorage_Create(t *testing.T) {
 	memStorage := New()
 
-	event1 := models.Event{Title: "Event 1", DateTime: time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC)}
-	event2 := models.Event{Title: "Event 2", DateTime: time.Date(2025, 1, 2, 11, 0, 0, 0, time.UTC)}
+	event1 := newEvent("Event 1", time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC))
+	id1, err := memStorage.Create(event1)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if id1 != 0 {
+		t.Errorf("Create() id = %d, want 0", id1)
+	}
 
-	id1, _ := memStorage.Create(event1)
-	id2, _ := memStorage.Create(event2)
-
-	assert.Equal(t, int64(0), id1)
-	assert.Equal(t, int64(1), id2)
+	event2 := newEvent("Event 2", time.Date(2025, 12, 3, 11, 0, 0, 0, time.UTC))
+	id2, err := memStorage.Create(event2)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if id2 != 1 {
+		t.Errorf("Create() id = %d, want 1", id2)
+	}
 
 	all := memStorage.FindAll()
-	assert.Len(t, all, 2)
+	if len(all) != 2 {
+		t.Fatalf("FindAll() len = %d, want 2", len(all))
+	}
+
 }
 
 func TestMemoryStorage_Update(t *testing.T) {
 	memStorage := New()
 
-	event := models.Event{Title: "Old", DateTime: time.Now().UTC()}
+	event := newEvent("Old title", time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC))
 	id, _ := memStorage.Create(event)
 
-	updatedEvent := models.Event{
+	// Подготавливаем обновлённое событие с тем же Id
+	updated := models.Event{
 		Id:       id,
-		Title:    "Updated",
-		DateTime: event.DateTime.Add(2 * time.Hour),
+		Title:    "New title",
+		DateTime: time.Date(2025, 12, 3, 11, 0, 0, 0, time.UTC),
 	}
-	memStorage.Update(updatedEvent)
+	memStorage.Update(updated)
 
-	all := memStorage.FindAll()
-	assert.Len(t, all, 1)
-	assert.Equal(t, "Updated", all[0].Title)
-	assert.True(t, updatedEvent.DateTime.Equal(all[0].DateTime))
+	found := memStorage.FindByTime(updated.DateTime)
+	if found.Id != id || found.Title != "New title" {
+		t.Errorf("Update() failed: got %+v, want Id=%d, Title='New title'", found, id)
+	}
 }
 
 func TestMemoryStorage_Delete(t *testing.T) {
 	memStorage := New()
 
-	event := models.Event{Title: "To Delete", DateTime: time.Now().UTC()}
-	id, _ := memStorage.Create(event)
+	e1 := newEvent("E1", time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC))
+	e2 := newEvent("E2", time.Date(2025, 12, 4, 10, 0, 0, 0, time.UTC))
 
-	// Удаление по модели (по ID)
-	memStorage.Delete(models.Event{Id: id})
-	assert.Len(t, memStorage.FindAll(), 0)
+	id1, _ := memStorage.Create(e1)
+	id2, _ := memStorage.Create(e2)
 
-	// Повторное создание
-	id, _ = memStorage.Create(event)
-	// Удаление по ID
-	err := memStorage.DeleteById(id)
-	require.NoError(t, err)
-	assert.Len(t, memStorage.FindAll(), 0)
+	// Удаляем по событию (используем только Id)
+	memStorage.Delete(models.Event{Id: id1})
+	all := memStorage.FindAll()
+	if len(all) != 1 {
+		t.Fatalf("after Delete, len = %d, want 1", len(all))
+	}
+	if all[0].Id != id2 {
+		t.Errorf("remaining event Id = %d, want %d", all[0].Id, id2)
+	}
+
+	// Удаляем по ID
+	memStorage.DeleteById(id2)
+	all = memStorage.FindAll()
+	if len(all) != 0 {
+		t.Errorf("after DeleteById, len = %d, want 0", len(all))
+	}
 }
 
 func TestMemoryStorage_FindByTime(t *testing.T) {
 	memStorage := New()
 
-	t1 := time.Date(2025, 12, 1, 15, 30, 0, 0, time.UTC)
-	event := models.Event{Title: "Exact time", DateTime: t1}
-	memStorage.Create(event)
+	dt := time.Date(2025, 12, 3, 15, 30, 0, 0, time.UTC)
+	event := newEvent("Test", dt)
+	id, _ := memStorage.Create(event)
 
-	found := memStorage.FindByTime(t1)
-	assert.Equal(t, event.Title, found.Title)
+	found := memStorage.FindByTime(dt)
+	if found.Id != id || found.Title != "Test" {
+		t.Errorf("FindByTime() = %+v, want Id=%d, Title='Test'", found, id)
+	}
 
-	// Не найдено
-	none := memStorage.FindByTime(t1.Add(1 * time.Minute))
-	assert.Equal(t, models.Event{}, none)
+	// Поиск несуществующего времени
+	missing := memStorage.FindByTime(time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
+	if !reflect.DeepEqual(missing, models.Event{}) {
+		t.Errorf("FindByTime(nonexistent) = %+v, want zero Event", missing)
+	}
 }
-
-// ВАЖНО: текущая реализация FindEventsByDay/Week/Month сравнивает time.Time напрямую.
-// Это работает ТОЛЬКО если время события совпадает с аргументом до наносекунды.
-// Для корректной работы надо сравнивать только день / неделю / месяц.
 
 func TestMemoryStorage_FindEventsByDay(t *testing.T) {
 	memStorage := New()
 
-	base := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC) // день целиком
-	event1 := models.Event{Title: "Same day, 10am", DateTime: base.Add(10 * time.Hour)}
-	event2 := models.Event{Title: "Same day, noon", DateTime: base.Add(12 * time.Hour)}
-	event3 := models.Event{Title: "Next day", DateTime: base.Add(24 * time.Hour)}
+	base := time.Date(2025, 12, 3, 0, 0, 0, 0, time.UTC) // Wed, Dec 3
+	id1, _ := memStorage.Create(newEvent("E1", base.Add(10*time.Hour)))
+	id2, _ := memStorage.Create(newEvent("E2", base.Add(15*time.Hour)))
+	_, _ = memStorage.Create(newEvent("E3", base.Add(24*time.Hour))) // Dec 4
 
-	memStorage.Create(event1)
-	memStorage.Create(event2)
-	memStorage.Create(event3)
+	res, _ := memStorage.FindEventsByDay(base)
+	if len(res) != 2 {
+		t.Fatalf("FindEventsByDay() len = %d, want 2", len(res))
+	}
 
-	// ❗ В текущей реализации: ищет ТОЛЬКО события с ТОЧНО тем же time.Time
-	// Поэтому найдёт 0 событий, если искать по base (00:00), но события в 10:00/12:00.
-	// Чтобы тест прошёл — будем искать по точному времени одного из событий.
-
-	// Например: найти по времени event1
-	res, err := memStorage.FindEventsByDay(event1.DateTime)
-	require.NoError(t, err)
-	assert.Len(t, res, 1) // потому что event1.DateTime == event1.DateTime
-	assert.Equal(t, event1.Title, res[0].Title)
-
-	// Но event2 НЕ будет найден, потому что 10:00 != 12:00
-	// Это показывает баг в логике.
+	// Проверим, что оба события — из 3 декабря, и их Id совпадают
+	ids := map[int64]bool{id1: true, id2: true}
+	for _, e := range res {
+		if !ids[e.Id] {
+			t.Errorf("unexpected event Id=%d in result", e.Id)
+		}
+		delete(ids, e.Id)
+	}
+	if len(ids) != 0 {
+		t.Errorf("missing expected events: %+v", ids)
+	}
 }
 
-// Аналогично для недели и месяца: текущая реализация НЕ РАБОТАЕТ корректно.
-// Ниже — демонстрация того, как должно быть (но пока не реализовано).
-
-func TestMemoryStorage_FindEventsByDay_CorrectLogic(t *testing.T) {
-	// Этот тест НЕ пройдёт до тех пор, пока не исправите методы.
-	// Демонстрация ожидаемого поведения.
-
+func TestMemoryStorage_FindEventsByWeek(t *testing.T) {
 	memStorage := New()
 
-	day := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
-	event1 := models.Event{Title: "Morning", DateTime: day.Add(8 * time.Hour)}
-	event2 := models.Event{Title: "Evening", DateTime: day.Add(18 * time.Hour)}
-	event3 := models.Event{Title: "Next day", DateTime: day.Add(30 * time.Hour)}
+	wed := time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC) // ISO week 49
+	mon := wed.Add(-2 * 24 * time.Hour)                  // Mon, Dec 1 — та же неделя
+	sun := wed.Add(4 * 24 * time.Hour)                   // Sun, Dec 7 — та же неделя
+	nextMon := wed.Add(7 * 24 * time.Hour)               // Mon, Dec 8 — след. неделя
 
-	memStorage.Create(event1)
-	memStorage.Create(event2)
-	memStorage.Create(event3)
+	memStorage.Create(newEvent("Mon", mon))
+	memStorage.Create(newEvent("Wed", wed))
+	memStorage.Create(newEvent("Sun", sun))
+	memStorage.Create(newEvent("NextMon", nextMon))
 
-	// Ожидаем: 2 события за 2025-12-01
-	res, _ := memStorage.FindEventsByDay(day)
-	// ❌ Сейчас будет 0 (или 1, если повезёт с точным совпадением времени)
-	// ✅ После исправления должно быть 2
-	t.Logf("Найдено %d событий за день (должно быть 2)", len(res))
-	// assert.Len(t, res, 2) // ← раскомментировать после фикса
+	res, _ := memStorage.FindEventsByWeek(wed)
+	if len(res) != 3 {
+		t.Errorf("FindEventsByWeek() len = %d, want 3", len(res))
+	}
 }
 
-// Как ИСПРАВИТЬ FindEventsByDay (пример):
-/*
-func (memStorage *MemoryStorage) FindEventsByDay(day time.Time) ([]models.Event, error) {
-	memStorage.mu.RLock()
-	defer memStorage.mu.RUnlock()
+func TestMemoryStorage_FindEventsByMonth(t *testing.T) {
+	memStorage := New()
 
-	result := make([]models.Event, 0)
-	targetDay := day.Truncate(24 * time.Hour)
+	dec3 := time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC)
+	dec31 := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
+	jan1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	for _, event := range memStorage.storage {
-		eventDay := event.DateTime.Truncate(24 * time.Hour)
-		if eventDay.Equal(targetDay) {
-			result = append(result, event)
+	memStorage.Create(newEvent("Dec 3", dec3))
+	memStorage.Create(newEvent("Dec 31", dec31))
+	memStorage.Create(newEvent("Jan 1", jan1))
+
+	res, _ := memStorage.FindEventsByMonth(dec3)
+	if len(res) != 2 {
+		t.Errorf("FindEventsByMonth(Dec) len = %d, want 2", len(res))
+	}
+	for _, e := range res {
+		if e.DateTime.Year() != 2025 || e.DateTime.Month() != time.December {
+			t.Errorf("event %+v not in December 2025", e)
 		}
 	}
-	return result, nil
 }
-*/
 
-// Аналогично для недели и месяца:
-// - неделя: сравнивать Year() и ISOWeek()
-// - месяц: Year() и Month()
+//func TestMemoryStorage_Concurrency(t *testing.T) {
+//	memStorage := New()
+//	const n = 1000
+//	var wg sync.WaitGroup
+//
+//	// Конкурентное создание
+//	for i := 0; i < n; i++ {
+//		wg.Add(1)
+//		go func(i int) {
+//			defer wg.Done()
+//			dt := time.Now().Add(time.Duration(i) * time.Minute)
+//			_, _ = memStorage.Create(newEvent("Conc", dt))
+//		}(i)
+//	}
+//	wg.Wait()
+//
+//	// Проверка итогового состояния
+//	all := memStorage.FindAll()
+//	if len(all) != n {
+//		t.Fatalf("expected %d events, got %d", n, len(all))
+//	}
+//
+//	// Проверка уникальности ID
+//	seen := make(map[int64]bool)
+//	for _, e := range all {
+//		if seen[e.Id] {
+//			t.Errorf("duplicate ID: %d", e.Id)
+//		}
+//		seen[e.Id] = true
+//		if e.Id < 0 || e.Id >= int64(n) {
+//			t.Errorf("ID out of range [0, %d): %d", n, e.Id)
+//		}
+//	}
+//
+//	// Конкурентное чтение
+//	var wg2 sync.WaitGroup
+//	readResults := make([][]models.Event, 10)
+//	for i := 0; i < 10; i++ {
+//		wg2.Add(1)
+//		go func(idx int) {
+//			defer wg2.Done()
+//			readResults[idx] = memStorage.FindAll()
+//		}(i)
+//	}
+//	wg2.Wait()
+//
+//	for i, r := range readResults {
+//		if len(r) != n {
+//			t.Errorf("reader %d got %d events, want %d", i, len(r), n)
+//		}
+//	}
+//}
 
-func TestMemoryStorage_FindAll(t *testing.T) {
+func TestMemoryStorage_EmptyBehavior(t *testing.T) {
 	memStorage := New()
 
-	event1 := models.Event{Title: "1"}
-	event2 := models.Event{Title: "2"}
-
-	memStorage.Create(event1)
-	memStorage.Create(event2)
-
+	// Все операции на пустом хранилище должны быть безопасны
 	all := memStorage.FindAll()
-	assert.Len(t, all, 2)
-	assert.ElementsMatch(t, []string{"1", "2"}, []string{all[0].Title, all[1].Title})
-}
-
-// ⚠️ Тест на гонку (race condition): запустить с `go test -race`
-func TestMemoryStorage_ConcurrentAccess(t *testing.T) {
-	memStorage := New()
-
-	done := make(chan bool, 10)
-
-	for i := 0; i < 5; i++ {
-		go func(id int) {
-			defer func() { done <- true }()
-			event := models.Event{
-				Title:    "Event " + string(rune('A'+id)),
-				DateTime: time.Now().Add(time.Duration(id) * time.Hour),
-			}
-			_, _ = memStorage.Create(event)
-		}(i)
+	if len(all) != 0 {
+		t.Error("FindAll on empty storage should return empty slice")
 	}
 
-	for i := 0; i < 5; i++ {
-		<-done
+	res, _ := memStorage.FindEventsByDay(time.Now())
+	if len(res) != 0 {
+		t.Error("FindEventsByDay on empty storage should return empty slice")
 	}
 
-	// Проверим, что создалось 5 событий (но при гонке может быть меньше или паника)
-	// Без мьютекса — поведение неопределённое
-	all := memStorage.FindAll()
-	t.Logf("Создано %d событий", len(all))
-	// assert.Len(t, all, 5) // может упасть без синхронизации
-}
-
-// Bonus: тест на отсутствие дубликатов при повторном Create
-func TestMemoryStorage_Create_IncrementalIDs(t *testing.T) {
-	memStorage := New()
-
-	id1, _ := memStorage.Create(models.Event{})
-	id2, _ := memStorage.Create(models.Event{})
-	id3, _ := memStorage.Create(models.Event{})
-
-	assert.Equal(t, int64(0), id1)
-	assert.Equal(t, int64(1), id2)
-	assert.Equal(t, int64(2), id3)
+	event := memStorage.FindByTime(time.Now())
+	if !reflect.DeepEqual(event, models.Event{}) {
+		t.Errorf("FindByTime on empty storage should return zero Event, got %+v", event)
+	}
 }

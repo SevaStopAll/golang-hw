@@ -8,7 +8,7 @@ import (
 
 type MemoryStorage struct {
 	storage map[int64]models.Event
-	mu      sync.RWMutex //nolint:unused
+	mu      sync.RWMutex
 	counter int64
 }
 
@@ -21,24 +21,37 @@ func New() *MemoryStorage {
 }
 
 func (memStorage *MemoryStorage) Create(event models.Event) (id int64, err error) {
+	memStorage.mu.Lock()
+	defer memStorage.mu.Unlock()
+
 	id = memStorage.counter
+	event.Id = memStorage.counter
 	memStorage.storage[id] = event
 	memStorage.counter++
 	return id, nil
 }
 
 func (memStorage *MemoryStorage) Update(event models.Event) {
-	for key, _ := range memStorage.storage {
-		if event.Id == key {
-			memStorage.storage[event.Id] = event
-		}
+	memStorage.mu.Lock()
+	defer memStorage.mu.Unlock()
+
+	// Проверка существования не обязательна, но можно добавить валидацию
+	if _, exists := memStorage.storage[event.Id]; exists {
+		memStorage.storage[event.Id] = event
 	}
+	// Или просто: memStorage.storage[event.Id] = event (перезапишет, если есть)
 }
 
 func (memStorage *MemoryStorage) FindEventsByDay(day time.Time) (res []models.Event, err error) {
-	result := make([]models.Event, 0)
+	memStorage.mu.RLock()
+	defer memStorage.mu.RUnlock()
+
+	var result []models.Event
 	for _, event := range memStorage.storage {
-		if event.DateTime == day {
+		// ⚠️ ВАЖНО: сравниваем только дату (без времени), иначе == никогда не сработает!
+		if event.DateTime.Year() == day.Year() &&
+			event.DateTime.Month() == day.Month() &&
+			event.DateTime.Day() == day.Day() {
 			result = append(result, event)
 		}
 	}
@@ -46,9 +59,15 @@ func (memStorage *MemoryStorage) FindEventsByDay(day time.Time) (res []models.Ev
 }
 
 func (memStorage *MemoryStorage) FindEventsByWeek(day time.Time) (res []models.Event, err error) {
-	result := make([]models.Event, 0)
+	memStorage.mu.RLock()
+	defer memStorage.mu.RUnlock()
+
+	// Определяем начало недели (например, понедельник)
+	year, week := day.ISOWeek()
+	var result []models.Event
 	for _, event := range memStorage.storage {
-		if event.DateTime == day {
+		ey, ew := event.DateTime.ISOWeek()
+		if ey == year && ew == week {
 			result = append(result, event)
 		}
 	}
@@ -56,9 +75,12 @@ func (memStorage *MemoryStorage) FindEventsByWeek(day time.Time) (res []models.E
 }
 
 func (memStorage *MemoryStorage) FindEventsByMonth(day time.Time) (res []models.Event, err error) {
-	result := make([]models.Event, 0)
+	memStorage.mu.RLock()
+	defer memStorage.mu.RUnlock()
+
+	var result []models.Event
 	for _, event := range memStorage.storage {
-		if event.DateTime == day {
+		if event.DateTime.Year() == day.Year() && event.DateTime.Month() == day.Month() {
 			result = append(result, event)
 		}
 	}
@@ -66,29 +88,39 @@ func (memStorage *MemoryStorage) FindEventsByMonth(day time.Time) (res []models.
 }
 
 func (memStorage *MemoryStorage) Delete(event models.Event) {
-	for key, _ := range memStorage.storage {
-		if event.Id == key {
-			delete(memStorage.storage, key)
-		}
-	}
+	memStorage.mu.Lock()
+	defer memStorage.mu.Unlock()
+
+	delete(memStorage.storage, event.Id)
 }
 
 func (memStorage *MemoryStorage) DeleteById(id int64) (err error) {
+	memStorage.mu.Lock()
+	defer memStorage.mu.Unlock()
+
 	delete(memStorage.storage, id)
 	return nil
 }
 
 func (memStorage *MemoryStorage) FindByTime(time2 time.Time) models.Event {
-	for _, value := range memStorage.storage {
-		if value.DateTime == time2 {
-			return value
+	memStorage.mu.RLock()
+	defer memStorage.mu.RUnlock()
+
+	for _, event := range memStorage.storage {
+		// ⚠️ Сравнение time.Time == чувствительно к наносекундам!
+		// Возможно, лучше использовать .Equal() или округлять
+		if event.DateTime.Equal(time2) {
+			return event
 		}
 	}
 	return models.Event{}
 }
 
 func (memStorage *MemoryStorage) FindAll() []models.Event {
-	result := make([]models.Event, 0)
+	memStorage.mu.RLock()
+	defer memStorage.mu.RUnlock()
+
+	result := make([]models.Event, 0, len(memStorage.storage))
 	for _, event := range memStorage.storage {
 		result = append(result, event)
 	}
