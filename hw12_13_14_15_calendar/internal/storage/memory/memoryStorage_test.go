@@ -12,7 +12,7 @@ func newEvent(title string, dt time.Time) models.Event {
 	return models.Event{
 		Title:    title,
 		DateTime: dt,
-		// Id будет заполнен Create()
+		// ID будет заполнен Create()
 	}
 }
 
@@ -41,7 +41,6 @@ func TestMemoryStorage_Create(t *testing.T) {
 	if len(all) != 2 {
 		t.Fatalf("FindAll() len = %d, want 2", len(all))
 	}
-
 }
 
 func TestMemoryStorage_Update(t *testing.T) {
@@ -50,17 +49,17 @@ func TestMemoryStorage_Update(t *testing.T) {
 	event := newEvent("Old title", time.Date(2025, 12, 3, 10, 0, 0, 0, time.UTC))
 	id, _ := memStorage.Create(event)
 
-	// Подготавливаем обновлённое событие с тем же Id
+	// Подготавливаем обновлённое событие с тем же ID
 	updated := models.Event{
-		Id:       id,
+		ID:       id,
 		Title:    "New title",
 		DateTime: time.Date(2025, 12, 3, 11, 0, 0, 0, time.UTC),
 	}
 	memStorage.Update(updated)
 
 	found := memStorage.FindByTime(updated.DateTime)
-	if found.Id != id || found.Title != "New title" {
-		t.Errorf("Update() failed: got %+v, want Id=%d, Title='New title'", found, id)
+	if found.ID != id || found.Title != "New title" {
+		t.Errorf("Update() failed: got %+v, want ID=%d, Title='New title'", found, id)
 	}
 }
 
@@ -73,21 +72,21 @@ func TestMemoryStorage_Delete(t *testing.T) {
 	id1, _ := memStorage.Create(e1)
 	id2, _ := memStorage.Create(e2)
 
-	// Удаляем по событию (используем только Id)
-	memStorage.Delete(models.Event{Id: id1})
+	// Удаляем по событию (используем только ID)
+	memStorage.Delete(models.Event{ID: id1})
 	all := memStorage.FindAll()
 	if len(all) != 1 {
 		t.Fatalf("after Delete, len = %d, want 1", len(all))
 	}
-	if all[0].Id != id2 {
-		t.Errorf("remaining event Id = %d, want %d", all[0].Id, id2)
+	if all[0].ID != id2 {
+		t.Errorf("remaining event ID = %d, want %d", all[0].ID, id2)
 	}
 
 	// Удаляем по ID
-	memStorage.DeleteById(id2)
+	memStorage.DeleteByID(id2)
 	all = memStorage.FindAll()
 	if len(all) != 0 {
-		t.Errorf("after DeleteById, len = %d, want 0", len(all))
+		t.Errorf("after DeleteByID, len = %d, want 0", len(all))
 	}
 }
 
@@ -99,8 +98,8 @@ func TestMemoryStorage_FindByTime(t *testing.T) {
 	id, _ := memStorage.Create(event)
 
 	found := memStorage.FindByTime(dt)
-	if found.Id != id || found.Title != "Test" {
-		t.Errorf("FindByTime() = %+v, want Id=%d, Title='Test'", found, id)
+	if found.ID != id || found.Title != "Test" {
+		t.Errorf("FindByTime() = %+v, want ID=%d, Title='Test'", found, id)
 	}
 
 	// Поиск несуществующего времени
@@ -123,13 +122,13 @@ func TestMemoryStorage_FindEventsByDay(t *testing.T) {
 		t.Fatalf("FindEventsByDay() len = %d, want 2", len(res))
 	}
 
-	// Проверим, что оба события — из 3 декабря, и их Id совпадают
+	// Проверим, что оба события — из 3 декабря, и их ID совпадают
 	ids := map[int64]bool{id1: true, id2: true}
 	for _, e := range res {
-		if !ids[e.Id] {
-			t.Errorf("unexpected event Id=%d in result", e.Id)
+		if !ids[e.ID] {
+			t.Errorf("unexpected event ID=%d in result", e.ID)
 		}
-		delete(ids, e.Id)
+		delete(ids, e.ID)
 	}
 	if len(ids) != 0 {
 		t.Errorf("missing expected events: %+v", ids)
@@ -176,59 +175,6 @@ func TestMemoryStorage_FindEventsByMonth(t *testing.T) {
 		}
 	}
 }
-
-//func TestMemoryStorage_Concurrency(t *testing.T) {
-//	memStorage := New()
-//	const n = 1000
-//	var wg sync.WaitGroup
-//
-//	// Конкурентное создание
-//	for i := 0; i < n; i++ {
-//		wg.Add(1)
-//		go func(i int) {
-//			defer wg.Done()
-//			dt := time.Now().Add(time.Duration(i) * time.Minute)
-//			_, _ = memStorage.Create(newEvent("Conc", dt))
-//		}(i)
-//	}
-//	wg.Wait()
-//
-//	// Проверка итогового состояния
-//	all := memStorage.FindAll()
-//	if len(all) != n {
-//		t.Fatalf("expected %d events, got %d", n, len(all))
-//	}
-//
-//	// Проверка уникальности ID
-//	seen := make(map[int64]bool)
-//	for _, e := range all {
-//		if seen[e.Id] {
-//			t.Errorf("duplicate ID: %d", e.Id)
-//		}
-//		seen[e.Id] = true
-//		if e.Id < 0 || e.Id >= int64(n) {
-//			t.Errorf("ID out of range [0, %d): %d", n, e.Id)
-//		}
-//	}
-//
-//	// Конкурентное чтение
-//	var wg2 sync.WaitGroup
-//	readResults := make([][]models.Event, 10)
-//	for i := 0; i < 10; i++ {
-//		wg2.Add(1)
-//		go func(idx int) {
-//			defer wg2.Done()
-//			readResults[idx] = memStorage.FindAll()
-//		}(i)
-//	}
-//	wg2.Wait()
-//
-//	for i, r := range readResults {
-//		if len(r) != n {
-//			t.Errorf("reader %d got %d events, want %d", i, len(r), n)
-//		}
-//	}
-//}
 
 func TestMemoryStorage_EmptyBehavior(t *testing.T) {
 	memStorage := New()

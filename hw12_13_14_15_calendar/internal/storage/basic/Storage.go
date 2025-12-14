@@ -6,9 +6,9 @@ import (
 )
 
 type Storage interface {
-	Create(event models.Event) (id int64, err error)
+	Create(event models.Event) (ID int64, err error)
 	Update(event models.Event)
-	DeleteById(eventId int64) (err error)
+	DeleteByID(eventID int64) (err error)
 	FindEventsByDay(date time.Time) ([]models.Event, error)
 	FindEventsByWeek(date time.Time) ([]models.Event, error)
 	FindEventsByMonth(date time.Time) ([]models.Event, error)

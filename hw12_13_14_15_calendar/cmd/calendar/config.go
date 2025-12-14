@@ -9,8 +9,7 @@ import (
 // Организация конфига в main принуждает нас сужать API компонентов, использовать
 // при их конструировании только необходимые параметры, а также уменьшает вероятность циклической зависимости.
 type Config struct {
-	Logger LoggerConf
-
+	Logger       LoggerConf
 	DbDriverName string
 	Dsn          string
 	Host         string
@@ -26,7 +25,6 @@ type LoggerConf struct {
 }
 
 func NewConfig(configFile string) Config {
-
 	var config Config
 	_, err := toml.DecodeFile(configFile, &config)
 	if err != nil {
@@ -36,5 +34,4 @@ func NewConfig(configFile string) Config {
 	config.Logger.Location = config.Location
 
 	return config
-
 }

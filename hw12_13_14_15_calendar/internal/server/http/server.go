@@ -46,7 +46,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func hello(w http.ResponseWriter, req *http.Request) {
-
 	// Функции, служащие обработчиками, принимают
 	// `http.ResponseWriter` и `http.Request` в качестве
 	// аргументов. Объект `http.ResponseWriter` используется для заполнения
@@ -56,7 +55,6 @@ func hello(w http.ResponseWriter, req *http.Request) {
 }
 
 func headers(w http.ResponseWriter, req *http.Request) {
-
 	// Этот обработчик делает что-то более сложное,
 	// прочитав все HTTP-заголовки запроса и выведя их в тело ответа.
 	for name, headers := range req.Header {

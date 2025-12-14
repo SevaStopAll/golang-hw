@@ -20,7 +20,7 @@ func New(logger *logger.Logger, storage basic.Storage) *App {
 
 func (a *App) CreateEvent(ctx context.Context, id int64, title string) error {
 	_, err := a.Storage.Create(models.Event{
-		Id:       id,
+		ID:       id,
 		Title:    title,
 		DateTime: time.Now(),
 	})
@@ -34,8 +34,8 @@ func (a *App) Update(event models.Event) {
 	a.Storage.Update(event)
 }
 
-func (a *App) DeleteById(eventId int64) (err error) {
-	return a.Storage.DeleteById(eventId)
+func (a *App) DeleteByID(eventID int64) (err error) {
+	return a.Storage.DeleteByID(eventID)
 }
 
 func (a *App) FindEventsByDay(date time.Time) ([]models.Event, error) {

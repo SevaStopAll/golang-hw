@@ -25,7 +25,7 @@ func (memStorage *MemoryStorage) Create(event models.Event) (id int64, err error
 	defer memStorage.mu.Unlock()
 
 	id = memStorage.counter
-	event.Id = memStorage.counter
+	event.ID = memStorage.counter
 	memStorage.storage[id] = event
 	memStorage.counter++
 	return id, nil
@@ -36,10 +36,10 @@ func (memStorage *MemoryStorage) Update(event models.Event) {
 	defer memStorage.mu.Unlock()
 
 	// Проверка существования не обязательна, но можно добавить валидацию
-	if _, exists := memStorage.storage[event.Id]; exists {
-		memStorage.storage[event.Id] = event
+	if _, exists := memStorage.storage[event.ID]; exists {
+		memStorage.storage[event.ID] = event
 	}
-	// Или просто: memStorage.storage[event.Id] = event (перезапишет, если есть)
+	// Или просто: memStorage.storage[event.ID] = event (перезапишет, если есть)
 }
 
 func (memStorage *MemoryStorage) FindEventsByDay(day time.Time) (res []models.Event, err error) {
@@ -91,10 +91,10 @@ func (memStorage *MemoryStorage) Delete(event models.Event) {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
-	delete(memStorage.storage, event.Id)
+	delete(memStorage.storage, event.ID)
 }
 
-func (memStorage *MemoryStorage) DeleteById(id int64) (err error) {
+func (memStorage *MemoryStorage) DeleteByID(id int64) (err error) {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
