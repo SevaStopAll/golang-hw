@@ -1,13 +1,14 @@
 package memorystorage
 
 import (
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
 )
 
-// Вспомогательная функция для создания события (только нужные поля)
+// Вспомогательная функция для создания события (только нужные поля).
 func newEvent(title string, dt time.Time) models.Event {
 	return models.Event{
 		Title:    title,

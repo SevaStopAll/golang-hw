@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/sevastopall/hw12_13_14_15_calendar/internal/app"
 	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/sevastopall/hw12_13_14_15_calendar/internal/server/http"
 	memorystorage "github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/sql"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 var configFile string

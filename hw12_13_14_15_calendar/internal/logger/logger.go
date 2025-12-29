@@ -8,8 +8,10 @@ type Logger struct {
 }
 
 func New(level string, location string) *Logger {
-	return &Logger{level: level,
-		location: location}
+	return &Logger{
+		level:    level,
+		location: location,
+	}
 }
 
 func (l Logger) Info(msg string) {

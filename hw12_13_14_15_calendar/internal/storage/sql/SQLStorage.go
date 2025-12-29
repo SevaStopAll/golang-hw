@@ -1,11 +1,12 @@
 package sqlstorage
 
 import (
-	"context"
-	"github.com/jmoiron/sqlx"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
 )
 
 type SQLStorage struct {
@@ -20,7 +21,7 @@ func New(dbDriverName string, dsn string) *SQLStorage {
 	return &SQLStorage{dbDriverName: dbDriverName, dsn: dsn}
 }
 
-func (r *SQLStorage) Connect(ctx context.Context) error {
+func (r *SQLStorage) Connect() error {
 	r.db = sqlx.MustConnect(r.dbDriverName, r.dsn)
 	// Настройки ниже конфигурируют пулл подключений к базе данных. Их названия стандартны для большинства библиотек.
 	// Ознакомиться с их описанием можно на примере документации Hikari pool:
@@ -32,8 +33,11 @@ func (r *SQLStorage) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (r *SQLStorage) Close(ctx context.Context) error {
-	// TODO
+func (r *SQLStorage) Close() error {
+	err := r.db.Close()
+	if err != nil {
+		fmt.Print(err)
+	}
 	return nil
 }
 

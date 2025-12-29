@@ -1,8 +1,9 @@
 package basic
 
 import (
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
 	"time"
+
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
 )
 
 type Storage interface {

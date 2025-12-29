@@ -2,11 +2,14 @@ package internalhttp
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/app"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/app"
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
 )
 
 type Server struct {
@@ -17,35 +20,67 @@ type Server struct {
 }
 
 func NewServer(logger *logger.Logger, app *app.App, host string, port int) *Server {
-	return &Server{host: host,
+	return &Server{
+		host:        host,
 		port:        port,
 		logger:      logger,
-		application: app}
+		application: app,
+	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/headers", headers)
-	err := http.ListenAndServe(s.host+":"+strconv.Itoa(s.port), nil)
-	if err != nil {
-		fmt.Println("Error starting the server:", err)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handler)
+	mux.HandleFunc("/hello", hello)
+	mux.HandleFunc("/headers", headers)
+
+	srv := &http.Server{
+		Addr:         s.host + ":" + strconv.Itoa(s.port),
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,  // ⚠️ Критически важно
+		WriteTimeout: 10 * time.Second, // ⚠️
+		IdleTimeout:  60 * time.Second, // ⚠️ для HTTP/1.1 keep-alive
+		// BaseContext: func(net.Listener) context.Context { return ctx }, // опционально
 	}
 
-	<-ctx.Done()
-	return nil
+	// Канал для ошибки запуска
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
+
+	select {
+	case <-ctx.Done():
+		// Graceful shutdown
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("graceful shutdown failed: %w", err)
+		}
+		return nil
+
+	case err := <-errCh:
+		// ✅ Безопасная проверка "это ошибка закрытия сервера?" даже при wrapping'е
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("server failed to start or crashed: %w", err)
+		}
+		return nil
+	}
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
+	fmt.Println(ctx)
 	return nil
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Body.Close())
 	fmt.Fprintf(w, "Hello, World!")
 }
 
 func hello(w http.ResponseWriter, req *http.Request) {
+	fmt.Println(req.Body.Close())
 	// Функции, служащие обработчиками, принимают
 	// `http.ResponseWriter` и `http.Request` в качестве
 	// аргументов. Объект `http.ResponseWriter` используется для заполнения
