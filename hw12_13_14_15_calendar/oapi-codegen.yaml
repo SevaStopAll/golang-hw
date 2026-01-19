@@ -1,0 +1,8 @@
+package: api
+generate:
+  echo-server: false          # если используете Echo
+  chi-server: true           # если используете chi
+  # gin-server: true         # если используете Gin (v2 поддерживает)
+  models: true               # генерировать структуры (Event, CreateEventRequest и т.д.)
+  embedded-spec: false       # не встраивать спецификацию в бинарник
+output: ./internal/api/generated.go
