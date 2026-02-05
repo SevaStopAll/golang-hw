@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Calendar Events API
+  version: 1.0.0
+  description: REST API для управления событиями календаря
+servers:
+  - url: http://localhost:8080
+    description: Локальный сервер разработки
+
+paths:
+  /events:
+    post:
+      summary: Создать новое событие
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Событие успешно создано
+        '400':
+          description: Неверный формат запроса
+        '500':
+          description: Внутренняя ошибка сервера
+
+    get:
+      summary: Получить события за указанный период
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2026-01-14"
+          description: Дата в формате YYYY-MM-DD
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month]
+            default: day
+          description: Период выборки — день, неделя или месяц
+      responses:
+        '200':
+          description: Список событий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '400':
+          description: Неверные параметры запроса
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /events/{id}:
+    put:
+      summary: Обновить событие по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Событие обновлено
+        '400':
+          description: Неверный запрос
+        '404':
+          description: Событие не найдено
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      summary: Удалить событие по ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Событие удалено
+        '404':
+          description: Событие не найдено
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        dateTime:
+          type: string
+          format: date-time
+          example: "2026-01-14T12:00:00Z"
+      required: [id, title, dateTime]
+
+    CreateEventRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+      required: [id, title]
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        dateTime:
+          type: string
+          format: date-time
+      required: [title, dateTime]

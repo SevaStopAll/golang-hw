@@ -1,16 +1,18 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"flag"
-	"os"
-	"os/signal"
-	"syscall"
+	"fmt"
+	"log"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/sevastopall/hw12_13_14_15_calendar/internal/app"
 	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
 	internalhttp "github.com/sevastopall/hw12_13_14_15_calendar/internal/server/http"
+	"github.com/sevastopall/hw12_13_14_15_calendar/internal/server/http/api"
 	memorystorage "github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/memory"
 	sqlstorage "github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/sql"
 )
@@ -40,29 +42,49 @@ func main() {
 		storage := sqlstorage.New(config.DbDriverName, config.Dsn)
 		calendar = app.New(logg, storage)
 	}
+	fmt.Print(calendar)
 
-	server := internalhttp.NewServer(logg, calendar, config.Host, config.Port)
+	// Создаём экземпляр хэндлера
+	handler := internalhttp.NewEventsHandler(logg, calendar, config.Host, config.Port)
 
-	ctx, cancel := signal.NotifyContext(context.Background(),
-		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
+	// Генерируем HTTP-хэндлер из oapi-codegen
+	httpHandler := api.Handler(handler)
 
-	go func() {
-		<-ctx.Done()
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if err := server.Stop(ctx); err != nil {
-			logg.Error("failed to stop http server: " + err.Error())
-		}
-	}()
-
-	logg.Info("calendar is running...")
-
-	if err := server.Start(ctx); err != nil {
-		logg.Error("failed to start http server: " + err.Error())
-		cancel()
-		os.Exit(1) //nolint:gocritic
+	server := &http.Server{
+		Addr:         ":" + strconv.Itoa(config.Port),
+		Handler:      httpHandler,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	log.Println("Сервер запущен на :8080")
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
+
+	// server := internalhttp.NewServer(logg, calendar, config.Host, config.Port)
+	//
+	// ctx, cancel := signal.NotifyContext(context.Background(),
+	//	syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	// defer cancel()
+	//
+	// go func() {
+	//	<-ctx.Done()
+	//
+	//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	//	defer cancel()
+	//
+	//	if err := server.Stop(ctx); err != nil {
+	//		logg.Error("failed to stop http server: " + err.Error())
+	//	}
+	// }()
+	//
+	// logg.Info("calendar is running...")
+	//
+	// if err := server.Start(ctx); err != nil {
+	//	logg.Error("failed to start http server: " + err.Error())
+	//	cancel()
+	//	os.Exit(1) //nolint:gocritic
+	// }
 }
