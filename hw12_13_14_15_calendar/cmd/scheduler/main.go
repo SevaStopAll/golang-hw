@@ -9,13 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/app"
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/config"
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/logger"
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/mq/kafka"
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/storage"
-	memory "github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/storage/memory"
-	sql "github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/storage/sql"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/app"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/config"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/logger"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/mq/kafka"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/storage"
+	memory "github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/storage/memory"
+	sql "github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/storage/sql"
 )
 
 var configFile string

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/models"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/models"
 	"github.com/segmentio/kafka-go"
 )
 

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/app"
-	"github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar/internal/server/http/api"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/app"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/server/http/api"
 	"github.com/gorilla/mux"
 )
 

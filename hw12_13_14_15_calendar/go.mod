@@ -1,4 +1,4 @@
-module github.com/Ilya19871986/hw-test/hw12_13_14_15_16_calendar
+module github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar
 
 go 1.23
 
