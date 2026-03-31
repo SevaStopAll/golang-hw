@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/app"
 	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/models"
-	"github.com/google/uuid"
 )
 
 // Server реализует сгенерированные интерфейсы сервера для gorilla/mux

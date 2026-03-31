@@ -18,42 +18,54 @@ type Server struct {
 }
 
 func NewServer(app *app.App, host string, port int) *Server {
+	s := &Server{app: app}
+	router := s.setupRouter()
+
+	s.server = &http.Server{
+		Addr:         fmt.Sprintf("%s:%d", host, port),
+		Handler:      router,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	return s
+}
+
+func (s *Server) setupRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	// Создаем API сервер для OpenAPI
-	apiServer := api.NewServer(app)
-
+	// API routes
+	apiServer := api.NewServer(s.app)
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	api.HandlerFromMux(apiServer, apiRouter)
 
-	// Health check
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "ok",
-			"time":   time.Now().Format(time.RFC3339),
-		})
-	}).Methods("GET")
+	// Health check endpoint
+	router.HandleFunc("/health", s.healthCheckHandler).Methods("GET")
 
-	// OpenAPI спецификация
-	router.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./api/openapi.yaml")
-	}).Methods("GET")
+	// OpenAPI specification
+	router.HandleFunc("/openapi.yaml", s.openAPIHandler).Methods("GET")
 
-	// Middleware
+	// Apply middleware
 	router.Use(loggingMiddleware)
 	router.Use(corsMiddleware)
 
-	return &Server{
-		server: &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", host, port),
-			Handler:      router,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			IdleTimeout:  60 * time.Second,
-		},
-		app: app,
+	return router
+}
+
+func (s *Server) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]string{
+		"status": "ok",
+		"time":   time.Now().Format(time.RFC3339),
 	}
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) openAPIHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./api/openapi.yaml")
 }
 
 func (s *Server) Start() error {

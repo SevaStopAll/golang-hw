@@ -1,1 +1,124 @@
-version: "3"
+version: "3.8"
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: calendar-postgres
+    environment:
+      POSTGRES_USER: calendar
+      POSTGRES_PASSWORD: calendar
+      POSTGRES_DB: calendar
+    ports:
+      - "6432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - calendar-network
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: calendar-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - calendar-network
+
+  # Kafka message broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: calendar-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - calendar-network
+
+  # Calendar API service
+  calendar:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile
+    container_name: calendar-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_FILE=/etc/calendar/config.yaml
+    volumes:
+      - ../configs/calendar.docker.yaml:/etc/calendar/config.yaml
+    restart: unless-stopped
+    networks:
+      - calendar-network
+
+  # Scheduler service
+  scheduler:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.scheduler
+    container_name: calendar-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - CONFIG_FILE=/etc/calendar/scheduler.yaml
+    volumes:
+      - ../configs/scheduler.docker.yaml:/etc/calendar/scheduler.yaml
+    restart: unless-stopped
+    networks:
+      - calendar-network
+
+  # Storer service
+  storer:
+    build:
+      context: ..
+      dockerfile: build/Dockerfile.storer
+    container_name: calendar-storer
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      - CONFIG_FILE=/etc/calendar/storer.yaml
+    volumes:
+      - ../configs/storer.docker.yaml:/etc/calendar/storer.yaml
+    restart: unless-stopped
+    networks:
+      - calendar-network
+
+volumes:
+  postgres_data:
+
+networks:
+  calendar-network:
+    name: calendar-network
+    driver: bridge

@@ -1,0 +1,14 @@
+logger:
+  level: "info"
+
+storage:
+  type: "sql"
+  dsn: "postgres://calendar:calendar@postgres:5432/calendar?sslmode=disable"
+
+kafka:
+  brokers:
+    - "kafka:29092"
+  topic: "calendar-notifications"
+  group_id: "calendar-storer"
+  max_attempts: 10
+  retry_backoff: 5s

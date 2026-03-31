@@ -3,12 +3,11 @@ logger:
 
 storage:
   type: "sql"
-  dsn: "postgres://user:password@localhost:5432/calendar?sslmode=disable"
+  dsn: "postgres://user:password@localhost:6432/calendar?sslmode=disable"
 
 kafka:
   brokers:
     - "localhost:9092"
   topic: "calendar-notifications"
-  group_id: "calendar-storer"
   max_attempts: 5
   retry_backoff: 5s
