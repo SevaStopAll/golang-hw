@@ -2,79 +2,89 @@ package internalhttp
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/app"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/app"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/server/http/api"
+	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	host        string
-	port        int
-	logger      *logger.Logger
-	application *app.App
+	server *http.Server
+	app    *app.App
 }
 
-func NewServer(logger *logger.Logger, app *app.App, host string, port int) *Server {
+func NewServer(app *app.App, host string, port int) *Server {
+	router := mux.NewRouter()
+
+	// Создаем API сервер для OpenAPI
+	apiServer := api.NewServer(app)
+
+	apiRouter := router.PathPrefix("/api").Subrouter()
+	api.HandlerFromMux(apiServer, apiRouter)
+
+	// Health check
+	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "ok",
+			"time":   time.Now().Format(time.RFC3339),
+		})
+	}).Methods("GET")
+
+	// OpenAPI спецификация
+	router.HandleFunc("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./api/openapi.yaml")
+	}).Methods("GET")
+
+	// Middleware
+	router.Use(loggingMiddleware)
+	router.Use(corsMiddleware)
+
 	return &Server{
-		host:        host,
-		port:        port,
-		logger:      logger,
-		application: app,
+		server: &http.Server{
+			Addr:         fmt.Sprintf("%s:%d", host, port),
+			Handler:      router,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  60 * time.Second,
+		},
+		app: app,
 	}
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	mux := http.NewServeMux()
-	// mux.HandleFunc("/", handler)
-	// mux.HandleFunc("/hello", hello)
-	// mux.HandleFunc("/headers", headers)
-	mux.HandleFunc("/openapi.yaml", swagger)
-
-	srv := &http.Server{
-		Addr:         s.host + ":" + strconv.Itoa(s.port),
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,  // ⚠️ Критически важно
-		WriteTimeout: 10 * time.Second, // ⚠️
-		IdleTimeout:  60 * time.Second, // ⚠️ для HTTP/1.1 keep-alive
-		// BaseContext: func(net.Listener) context.Context { return ctx }, // опционально
-	}
-
-	// Канал для ошибки запуска
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- srv.ListenAndServe()
-	}()
-
-	select {
-	case <-ctx.Done():
-		// Graceful shutdown
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := srv.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("graceful shutdown failed: %w", err)
-		}
-		return nil
-
-	case err := <-errCh:
-		// ✅ Безопасная проверка "это ошибка закрытия сервера?" даже при wrapping'е
-		if !errors.Is(err, http.ErrServerClosed) {
-			return fmt.Errorf("server failed to start or crashed: %w", err)
-		}
-		return nil
-	}
+func (s *Server) Start() error {
+	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	fmt.Println(ctx)
-	return nil
+	return s.server.Shutdown(ctx)
 }
 
-func swagger(w http.ResponseWriter, req *http.Request) {
-	http.ServeFile(w, req, "openapi.yaml")
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Логирование запросов
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		duration := time.Since(start)
+		fmt.Printf("%s %s %s\n", r.Method, r.URL.Path, duration)
+	})
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

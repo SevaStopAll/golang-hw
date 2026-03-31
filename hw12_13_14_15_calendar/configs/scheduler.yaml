@@ -1,0 +1,18 @@
+logger:
+  level: "info"
+
+storage:
+  type: "sql"
+  dsn: "postgres://user:password@localhost:5432/calendar?sslmode=disable"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  topic: "calendar-notifications"
+  client_id: "calendar-scheduler"
+  max_attempts: 5
+  retry_backoff: 5s
+
+scheduler:
+  interval: 30s
+  cleanup_older_than: 8760h  # 1 год

@@ -1,0 +1,254 @@
+openapi: 3.0.3
+info:
+  title: Calendar API
+  description: HTTP API для сервиса календаря
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+
+paths:
+  /events:
+    get:
+      summary: Получить список всех событий
+      operationId: listEvents
+      responses:
+        '200':
+          description: Успешный ответ со списком событий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Создать новое событие
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Событие успешно создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /events/{id}:
+    get:
+      summary: Получить событие по ID
+      operationId: getEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID события
+      responses:
+        '200':
+          description: Успешный ответ с событием
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    put:
+      summary: Обновить событие
+      operationId: updateEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID события
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Событие успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    delete:
+      summary: Удалить событие
+      operationId: deleteEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID события
+      responses:
+        '200':
+          description: Событие успешно удалено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - id
+        - title
+        - start_time
+        - end_time
+        - user_id
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор события
+        title:
+          type: string
+          description: Заголовок события
+        description:
+          type: string
+          description: Описание события
+        start_time:
+          type: string
+          format: date-time
+          description: Время начала события
+        end_time:
+          type: string
+          format: date-time
+          description: Время окончания события
+        user_id:
+          type: string
+          description: ID пользователя
+        notify_before:
+          type: integer
+          description: За сколько секунд уведомить о событии
+
+    CreateEventRequest:
+      type: object
+      required:
+        - title
+        - start_time
+        - end_time
+        - user_id
+      properties:
+        title:
+          type: string
+          description: Заголовок события
+        description:
+          type: string
+          description: Описание события
+        start_time:
+          type: string
+          format: date-time
+          description: Время начала события
+        end_time:
+          type: string
+          format: date-time
+          description: Время окончания события
+        user_id:
+          type: string
+          description: ID пользователя
+        notify_before:
+          type: integer
+          description: За сколько секунд уведомить о событии
+
+    UpdateEventRequest:
+      type: object
+      required:
+        - title
+        - start_time
+        - end_time
+        - user_id
+      properties:
+        title:
+          type: string
+          description: Заголовок события
+        description:
+          type: string
+          description: Описание события
+        start_time:
+          type: string
+          format: date-time
+          description: Время начала события
+        end_time:
+          type: string
+          format: date-time
+          description: Время окончания события
+        user_id:
+          type: string
+          description: ID пользователя
+        notify_before:
+          type: integer
+          description: За сколько секунд уведомить о событии
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: integer
+
+  responses:
+    BadRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    InternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -4,63 +4,39 @@ import (
 	"context"
 	"time"
 
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/logger"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/basic"
-	"github.com/sevastopall/hw12_13_14_15_calendar/internal/storage/models"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/logger"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/models"
+	"github.com/SevaStopAll/golang-hw/hw12_13_14_15_16_calendar/internal/storage"
 )
 
 type App struct {
-	Logger  logger.Logger
-	Storage basic.Storage
+	logger  *logger.Logger
+	storage storage.Storage
 }
 
-func New(logger *logger.Logger, storage basic.Storage) *App {
+func New(logger *logger.Logger, storage storage.Storage) *App {
 	return &App{
-		Logger:  *logger,
-		Storage: storage,
+		logger:  logger,
+		storage: storage,
 	}
 }
 
-func (a *App) CreateEvent(ctx context.Context, id int64, title string) error {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	_, err := a.Storage.Create(models.Event{
-		ID:       id,
-		Title:    title,
-		DateTime: time.Now(),
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+func (a *App) CreateEvent(ctx context.Context, event *models.Event) error {
+	return a.storage.CreateEvent(ctx, event)
 }
 
-func (a *App) Update(ctx context.Context, event models.Event) {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	a.Storage.Update(event)
+func (a *App) UpdateEvent(ctx context.Context, event *models.Event) error {
+	return a.storage.UpdateEvent(ctx, event)
 }
 
-func (a *App) DeleteByID(ctx context.Context, eventID int64) (err error) {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	return a.Storage.DeleteByID(eventID)
+func (a *App) DeleteEvent(ctx context.Context, id string) error {
+	return a.storage.DeleteEvent(ctx, id)
 }
 
-func (a *App) FindEventsByDay(ctx context.Context, date time.Time) ([]models.Event, error) {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	return a.Storage.FindEventsByDay(date)
+func (a *App) GetEvent(ctx context.Context, id string) (*models.Event, error) {
+	return a.storage.GetEvent(ctx, id)
 }
 
-func (a *App) FindEventsByWeek(ctx context.Context, date time.Time) ([]models.Event, error) {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	return a.Storage.FindEventsByWeek(date)
-}
-
-func (a *App) FindEventsByMonth(ctx context.Context, date time.Time) ([]models.Event, error) {
-	_, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	return a.Storage.FindEventsByMonth(date)
+func (a *App) ListEvents(ctx context.Context, from, to time.Time) ([]*models.Event, error) {
+	return a.storage.ListEvents(ctx, from, to)
 }
