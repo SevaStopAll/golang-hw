@@ -46,15 +46,15 @@ func main() {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 
-	var store storage.Storage
-	if cfg.Storage.Type == "sql" {
-		store, err = sql.NewStorage(cfg.Storage.DSN)
-		if err != nil {
-			logg.Fatalf("Failed to create SQL storage: %v", err)
-		}
-	} else {
-		store = memory.NewStorage()
+	store, err := initStorage(cfg, logg)
+	if err != nil {
+		logg.Fatalf("Failed to initialize storage: %v", err)
 	}
+	defer func() {
+		if err := store.Close(); err != nil {
+			logg.Errorf("Failed to close storage: %v", err)
+		}
+	}()
 
 	calendarApp := app.New(logg, store)
 
@@ -85,4 +85,18 @@ func main() {
 	}
 
 	logg.Info("Server stopped")
+}
+
+func initStorage(cfg *config.Config, logg *logger.Logger) (storage.Storage, error) {
+	if cfg.Storage.Type == "sql" {
+		store, err := sql.NewStorage(cfg.Storage.DSN)
+		if err != nil {
+			return nil, err
+		}
+		logg.Info("SQL storage initialized")
+		return store, nil
+	}
+
+	logg.Info("In-memory storage initialized")
+	return memory.NewStorage(), nil
 }
