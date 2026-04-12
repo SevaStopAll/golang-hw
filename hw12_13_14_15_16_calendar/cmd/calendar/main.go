@@ -14,6 +14,8 @@ import (
 	"github.com/SevaStopAll/hw-test/hw12_13_14_15_16_calendar/internal/logger"
 	internalhttp "github.com/SevaStopAll/hw-test/hw12_13_14_15_16_calendar/internal/server/http"
 	"github.com/SevaStopAll/hw-test/hw12_13_14_15_16_calendar/internal/storage"
+	memorystorage "github.com/SevaStopAll/hw-test/hw12_13_14_15_16_calendar/internal/storage/memory"
+	sqlstorage "github.com/SevaStopAll/hw-test/hw12_13_14_15_16_calendar/internal/storage/sql"
 )
 
 var (
@@ -87,7 +89,7 @@ func main() {
 
 func initStorage(cfg *config.Config, logg *logger.Logger) (storage.Storage, error) {
 	if cfg.Storage.Type == "sql" {
-		store, err := sql.NewStorage(cfg.Storage.DSN)
+		store, err := sqlstorage.NewStorage(cfg.Storage.DSN)
 		if err != nil {
 			return nil, err
 		}
@@ -96,5 +98,5 @@ func initStorage(cfg *config.Config, logg *logger.Logger) (storage.Storage, erro
 	}
 
 	logg.Info("In-memory storage initialized")
-	return memory.NewStorage(), nil
+	return memorystorage.NewStorage(), nil
 }
